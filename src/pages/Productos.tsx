@@ -3,7 +3,8 @@ import { getDashboardData } from '../apis/api';
 import { 
   PackageSearch, Search, TrendingUp, Package, 
   BarChart2, PieChart, List, Grid, Filter, 
-  SortDesc, Loader, AlertCircle, ArrowUp, ArrowDown
+  SortDesc, Loader, AlertCircle, ArrowUp, ArrowDown,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -30,6 +31,12 @@ const Productos = () => {
   const [sortKey, setSortKey] = useState<'nombre_producto' | 'total_ventas' | 'total_articulos'>('total_ventas');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [topProductsCount, setTopProductsCount] = useState(10);
+  
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [paginatedProductos, setPaginatedProductos] = useState<Producto[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -91,7 +98,34 @@ const Productos = () => {
     });
 
     setFilteredProductos(filtered);
+    // Reset a la primera página cuando cambia el filtrado o el ordenamiento
+    setCurrentPage(1);
   }, [searchTerm, productos, sortKey, sortDirection]);
+
+  // Efecto para actualizar la paginación cuando cambia la lista filtrada o la página actual
+  useEffect(() => {
+    const totalItems = filteredProductos.length;
+    const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage);
+    setTotalPages(calculatedTotalPages || 1);
+    
+    // Asegurar que la página actual nunca sea mayor que el total de páginas
+    const safePage = Math.min(currentPage, calculatedTotalPages || 1);
+    if (safePage !== currentPage) {
+      setCurrentPage(safePage);
+    }
+    
+    // Calcular los índices para el slicing
+    const startIndex = (safePage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    // Aplicar la paginación
+    setPaginatedProductos(filteredProductos.slice(startIndex, endIndex));
+  }, [filteredProductos, currentPage, itemsPerPage]);
+
+  const goToPage = (page: number) => {
+    const safePage = Math.max(1, Math.min(page, totalPages));
+    setCurrentPage(safePage);
+  };
 
   const toggleSortDirection = () => {
     setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -139,6 +173,97 @@ const Productos = () => {
       );
     }
     return null;
+  };
+
+  // Componente de paginación
+  const Pagination = () => {
+    const pageNumbers = [];
+    const maxPagesToShow = 5;
+    
+    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+    
+    if (endPage - startPage + 1 < maxPagesToShow) {
+      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+    
+    return (
+      <div className="flex items-center justify-between border-t border-gray-200 bg-white py-3 mt-4">
+        <div className="flex items-center text-sm text-gray-700">
+          <span className="mr-2">Mostrando</span>
+          <span className="font-medium">{Math.min((currentPage - 1) * itemsPerPage + 1, filteredProductos.length)}</span>
+          <span className="mx-1">-</span>
+          <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredProductos.length)}</span>
+          <span className="mx-1">de</span>
+          <span className="font-medium">{filteredProductos.length}</span>
+          <span className="ml-1">productos</span>
+        </div>
+        
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={() => goToPage(1)}
+            disabled={currentPage === 1}
+            className={`p-2 border rounded-md ${
+              currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+            aria-label="Primera página"
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </button>
+          
+          <button
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`p-2 border rounded-md ${
+              currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+            aria-label="Página anterior"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          
+          {pageNumbers.map(number => (
+            <button
+              key={number}
+              onClick={() => goToPage(number)}
+              className={`px-3 py-1 border rounded-md ${
+                currentPage === number
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {number}
+            </button>
+          ))}
+          
+          <button
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={`p-2 border rounded-md ${
+              currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+            aria-label="Página siguiente"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          
+          <button
+            onClick={() => goToPage(totalPages)}
+            disabled={currentPage === totalPages}
+            className={`p-2 border rounded-md ${
+              currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+            aria-label="Última página"
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -295,139 +420,147 @@ const Productos = () => {
 
       {/* Grid View */}
       {viewMode === 'grid' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProductos.map((producto, index) => (
-            <div 
-              key={producto.codigo_producto ?? `producto-${index}`} 
-              className="bg-white rounded-lg shadow-md p-5 hover:shadow-lg transition-shadow border border-gray-100"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium truncate max-w-[70%]" title={producto.codigo_producto || ''}>
-                  {producto.codigo_producto ?? 'N/A'}
-                </span>
-                <Package className="text-blue-600" size={22} />
-              </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {paginatedProductos.map((producto, index) => (
+              <div 
+                key={producto.codigo_producto ?? `producto-${index}`} 
+                className="bg-white rounded-lg shadow-md p-5 hover:shadow-lg transition-shadow border border-gray-100"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium truncate max-w-[70%]" title={producto.codigo_producto || ''}>
+                    {producto.codigo_producto ?? 'N/A'}
+                  </span>
+                  <Package className="text-blue-600" size={22} />
+                </div>
 
-              <h3 className="text-lg font-semibold mb-4 text-gray-800 line-clamp-2 h-14" title={producto.nombre_producto || ''}>
-                {producto.nombre_producto ?? 'Producto sin nombre'}
-              </h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-800 line-clamp-2 h-14" title={producto.nombre_producto || ''}>
+                  {producto.nombre_producto ?? 'Producto sin nombre'}
+                </h3>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <div className="flex items-center gap-1 mb-1">
-                    <TrendingUp className="text-blue-500" size={14} />
-                    <p className="text-xs text-blue-600">Ventas</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <div className="flex items-center gap-1 mb-1">
+                      <TrendingUp className="text-blue-500" size={14} />
+                      <p className="text-xs text-blue-600">Ventas</p>
+                    </div>
+                    <p className="text-base font-semibold text-gray-800">
+                      ${producto.total_ventas?.toLocaleString() ?? '0'}
+                    </p>
                   </div>
-                  <p className="text-base font-semibold text-gray-800">
-                    ${producto.total_ventas?.toLocaleString() ?? '0'}
-                  </p>
-                </div>
-                <div className="bg-green-50 p-3 rounded-lg">
-                  <div className="flex items-center gap-1 mb-1">
-                    <Package className="text-green-500" size={14} />
-                    <p className="text-xs text-green-600">Artículos</p>
+                  <div className="bg-green-50 p-3 rounded-lg">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Package className="text-green-500" size={14} />
+                      <p className="text-xs text-green-600">Artículos</p>
+                    </div>
+                    <p className="text-base font-semibold text-gray-800">
+                      {producto.total_articulos?.toLocaleString() ?? '0'}
+                    </p>
                   </div>
-                  <p className="text-base font-semibold text-gray-800">
-                    {producto.total_articulos?.toLocaleString() ?? '0'}
-                  </p>
                 </div>
+                
+                {/* Percentage of total sales */}
+                {producto.total_ventas !== null && totalVentas > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-gray-600">% del Total de Ventas</span>
+                      <span className="text-xs font-medium text-gray-800">
+                        {((producto.total_ventas / totalVentas) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                      <div 
+                        className="bg-blue-600 h-1.5 rounded-full" 
+                        style={{ width: `${(producto.total_ventas / totalVentas) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
               </div>
-              
-              {/* Percentage of total sales */}
-              {producto.total_ventas !== null && totalVentas > 0 && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-600">% del Total de Ventas</span>
-                    <span className="text-xs font-medium text-gray-800">
-                      {((producto.total_ventas / totalVentas) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5">
-                    <div 
-                      className="bg-blue-600 h-1.5 rounded-full" 
-                      style={{ width: `${(producto.total_ventas / totalVentas) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          {/* Paginación para vista de grid */}
+          <Pagination />
+        </>
       )}
 
       {/* Table View */}
       {viewMode === 'table' && (
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Código
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Producto
-                </th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ventas
-                </th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Artículos
-                </th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  % del Total
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProductos.map((producto, index) => (
-                <tr 
-                  key={producto.codigo_producto ?? `producto-${index}`}
-                  className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                >
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                      {producto.codigo_producto ?? 'N/A'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {producto.nombre_producto ?? 'Sin nombre'}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                    ${producto.total_ventas?.toLocaleString() ?? '0'}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                    {producto.total_articulos?.toLocaleString() ?? '0'}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-right">
-                    <div className="flex items-center justify-end">
-                      <span className="text-gray-700 mr-2 text-sm">
-                        {totalVentas > 0 && producto.total_ventas !== null 
-                          ? ((producto.total_ventas / totalVentas) * 100).toFixed(1) 
-                          : '0'}%
-                      </span>
-                      <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                        <div 
-                          className="bg-blue-600 h-1.5 rounded-full" 
-                          style={{ width: `${totalVentas > 0 && producto.total_ventas !== null 
-                            ? ((producto.total_ventas / totalVentas) * 100) 
-                            : 0}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </td>
+        <>
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Código
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Producto
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ventas
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Artículos
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    % del Total
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot className="bg-gray-50 font-medium">
-              <tr>
-                <td className="px-4 py-3 text-sm" colSpan={2}>Totales</td>
-                <td className="px-4 py-3 text-sm text-right">${totalVentas.toLocaleString()}</td>
-                <td className="px-4 py-3 text-sm text-right">{totalArticulos.toLocaleString()}</td>
-                <td className="px-4 py-3 text-sm text-right">100%</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedProductos.map((producto, index) => (
+                  <tr 
+                    key={producto.codigo_producto ?? `producto-${index}`}
+                    className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                  >
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                        {producto.codigo_producto ?? 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {producto.nombre_producto ?? 'Sin nombre'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                      ${producto.total_ventas?.toLocaleString() ?? '0'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                      {producto.total_articulos?.toLocaleString() ?? '0'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end">
+                        <span className="text-gray-700 mr-2 text-sm">
+                          {totalVentas > 0 && producto.total_ventas !== null 
+                            ? ((producto.total_ventas / totalVentas) * 100).toFixed(1) 
+                            : '0'}%
+                        </span>
+                        <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                          <div 
+                            className="bg-blue-600 h-1.5 rounded-full" 
+                            style={{ width: `${totalVentas > 0 && producto.total_ventas !== null 
+                              ? ((producto.total_ventas / totalVentas) * 100) 
+                              : 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50 font-medium">
+                <tr>
+                  <td className="px-4 py-3 text-sm" colSpan={2}>Totales</td>
+                  <td className="px-4 py-3 text-sm text-right">${totalVentas.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm text-right">{totalArticulos.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm text-right">100%</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          {/* Paginación para vista de tabla */}
+          <Pagination />
+        </>
       )}
 
       {/* Charts View */}
@@ -483,6 +616,8 @@ const Productos = () => {
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend />
+                  <Bar yAxisId="left" dataKey="ventas" name="Ventas ($)" fill="#8884d8" />
+                  <Bar yAxisId="right" dataKey="articulos" name="Artículos" fill="#82ca9d" />
                   <Bar yAxisId="left" dataKey="ventas" name="Ventas ($)" fill="#8884d8" />
                   <Bar yAxisId="right" dataKey="articulos" name="Artículos" fill="#82ca9d" />
                 </BarChart>

@@ -11,7 +11,6 @@ const Sidebar = () => {
     { path: '/bodegas', icon: <Store size={20} />, title: 'Bodegas' },
     { path: '/medios-pago', icon: <CreditCard size={20} />, title: 'Medios de Pago' },
     { path: '/productos', icon: <Package size={20} />, title: 'Productos' },
-    { path: '/categorias', icon: <LineChart size={20} />, title: 'Categorías' },
     { path: '/ganancias', icon: <DollarSign size={20} />, title: 'Ganancias' },
     { path: '/genero', icon: <Users size={20} />, title: 'Género' },
   ];

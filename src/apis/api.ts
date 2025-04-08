@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://dashboard-q54p.onrender.com/dashboard'
+  baseURL: 'http://localhost:3000/dashboard'
 });
 
 export const getDashboardData = {

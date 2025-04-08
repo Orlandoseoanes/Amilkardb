@@ -24,7 +24,7 @@ interface StatCardProps {
 }
 
 const StatCard = ({ icon: Icon, title, value, trend, trendType, description }: StatCardProps) => (
-  <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:border-blue-200 transition-all">
+  <div className="bg-white p-6 truncate rounded-xl shadow-lg border border-gray-100 hover:border-blue-200 transition-all">
     <div className="flex items-center justify-between mb-4">
       <div className="bg-blue-50 p-3 rounded-lg">
         <Icon className="text-blue-600" size={24} />
@@ -37,7 +37,7 @@ const StatCard = ({ icon: Icon, title, value, trend, trendType, description }: S
         {trend}
       </span>
     </div>
-    <h3 className="text-2xl font-bold text-gray-900 mb-1">
+    <h3 className="text-2xl font-bold truncate text-gray-900 mb-1">
       {typeof value === 'number' && !title.includes('$') ? value.toLocaleString() : value}
     </h3>
     <p className="text-sm text-gray-500 font-medium">{title}</p>
@@ -126,9 +126,10 @@ const Dashboard = () => {
           <p className="text-gray-500 mt-2">Real-time metrics and business insights</p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 overflow-auto lg:grid-cols-4 gap-6">
           <StatCard
             icon={DollarSign}
+            
             title="Total Sales"
             value={`$${data.ventasTotales.toLocaleString()}`}
             trend="+12.5% vs last month"
